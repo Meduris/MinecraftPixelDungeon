@@ -39,7 +39,7 @@ public class WelcomeScene extends PixelScene {
 
 	private static final String TTL_Welcome = "Welcome!";
 
-	private static final String TTL_Update = "v0.1.1";
+	private static final String TTL_Update = "v0.1.2";
 
 	private static final String TTL_Future = "Wait What?";
 
@@ -64,6 +64,8 @@ public class WelcomeScene extends PixelScene {
 				"Happy Dungeoneering!";
 
 	private static final String TXT_Update =
+				"Updated the ingame graphics\n" +
+				"v0.1.1:\n" +
 				"Updated some things to meet the modding guidelines:\n" +
 				"- Changed the About screen\n" +
 				"- Title screen shows both Shattered PD and Minecraft PD version\n" +
