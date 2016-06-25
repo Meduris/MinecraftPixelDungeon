@@ -20,7 +20,22 @@
  */
 package com.minecraftpixeldungeon.windows;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+
+import org.json.JSONObject;
+import org.json.JSONTokener;
+
 import com.minecraftpixeldungeon.Assets;
+import com.minecraftpixeldungeon.Encryption;
 import com.minecraftpixeldungeon.MinecraftPixelDungeon;
 import com.minecraftpixeldungeon.scenes.GameScene;
 import com.minecraftpixeldungeon.scenes.PixelScene;
@@ -34,34 +49,44 @@ import com.watabou.noosa.Group;
 import com.watabou.noosa.audio.Music;
 import com.watabou.noosa.audio.Sample;
 
-public class WndSettings extends WndTabbed {
-	private static final String TXT_SWITCH_PORT	= "Switch to portrait";
-	private static final String TXT_SWITCH_LAND	= "Switch to landscape";
+import android.os.Environment;
+import android.widget.Toast;
 
-	private static final int WIDTH		    = 112;
-	private static final int HEIGHT         = 112;
-	private static final int SLIDER_HEIGHT	= 25;
-	private static final int BTN_HEIGHT	    = 20;
-	private static final int GAP_SML 		= 2;
-	private static final int GAP_LRG 		= 10;
+public class WndSettings extends WndTabbed {
+	private static final String TXT_SWITCH_PORT = "Switch to portrait";
+	private static final String TXT_SWITCH_LAND = "Switch to landscape";
+
+	private static final int WIDTH = 112;
+	private static final int HEIGHT = 112;
+	private static final int SLIDER_HEIGHT = 25;
+	private static final int BTN_HEIGHT = 20;
+	private static final int GAP_SML = 2;
+	private static final int GAP_LRG = 10;
 
 	private ScreenTab screen;
 	private UITab ui;
 	private AudioTab audio;
+	private SaveTab saves;
+
+	private RedButton btnExportInfo;
+	private RedButton btnExportFiles;
 
 	public WndSettings() {
 		super();
 
 		screen = new ScreenTab();
-		add( screen );
+		add(screen);
 
 		ui = new UITab();
-		add( ui );
+		add(ui);
 
 		audio = new AudioTab();
-		add( audio );
+		add(audio);
 
-		add( new LabeledTab("Screen"){
+		saves = new SaveTab();
+		add(saves);
+
+		add(new LabeledTab("Screen") {
 			@Override
 			protected void select(boolean value) {
 				super.select(value);
@@ -69,7 +94,7 @@ public class WndSettings extends WndTabbed {
 			}
 		});
 
-		add( new LabeledTab("UI"){
+		add(new LabeledTab("UI") {
 			@Override
 			protected void select(boolean value) {
 				super.select(value);
@@ -77,11 +102,19 @@ public class WndSettings extends WndTabbed {
 			}
 		});
 
-		add( new LabeledTab("Audio"){
+		add(new LabeledTab("Audio") {
 			@Override
 			protected void select(boolean value) {
 				super.select(value);
 				audio.visible = audio.active = value;
+			}
+		});
+
+		add(new LabeledTab("Save") {
+			@Override
+			protected void select(boolean value) {
+				super.select(value);
+				saves.visible = saves.active = value;
 			}
 		});
 
@@ -98,11 +131,8 @@ public class WndSettings extends WndTabbed {
 		public ScreenTab() {
 			super();
 
-			OptionSlider scale = new OptionSlider("Display Scale",
-					(int)Math.ceil(2* Game.density)+ "X",
-					PixelScene.maxDefaultZoom + "X",
-					(int)Math.ceil(2* Game.density),
-					PixelScene.maxDefaultZoom ) {
+			OptionSlider scale = new OptionSlider("Display Scale", (int) Math.ceil(2 * Game.density) + "X",
+					PixelScene.maxDefaultZoom + "X", (int) Math.ceil(2 * Game.density), PixelScene.maxDefaultZoom) {
 				@Override
 				protected void onChange() {
 					if (getSelectedValue() != MinecraftPixelDungeon.scale()) {
@@ -112,7 +142,7 @@ public class WndSettings extends WndTabbed {
 				}
 			};
 			scale.setSelectedValue(PixelScene.defaultZoom);
-			if ((int)Math.ceil(2* Game.density) < PixelScene.maxDefaultZoom) {
+			if ((int) Math.ceil(2 * Game.density) < PixelScene.maxDefaultZoom) {
 				scale.setRect(0, 0, WIDTH, SLIDER_HEIGHT);
 				add(scale);
 			} else {
@@ -129,71 +159,71 @@ public class WndSettings extends WndTabbed {
 			brightness.setRect(0, scale.bottom() + GAP_SML, WIDTH, SLIDER_HEIGHT);
 			add(brightness);
 
-			CheckBox chkImmersive = new CheckBox( "Hide Software Keys" ) {
+			CheckBox chkImmersive = new CheckBox("Hide Software Keys") {
 				@Override
 				protected void onClick() {
 					super.onClick();
 					MinecraftPixelDungeon.immerse(checked());
 				}
 			};
-			chkImmersive.setRect( 0, brightness.bottom() + GAP_LRG, WIDTH, BTN_HEIGHT );
+			chkImmersive.setRect(0, brightness.bottom() + GAP_LRG, WIDTH, BTN_HEIGHT);
 			chkImmersive.checked(MinecraftPixelDungeon.immersed());
 			chkImmersive.enable(android.os.Build.VERSION.SDK_INT >= 19);
 			add(chkImmersive);
 
-
-			RedButton btnOrientation = new RedButton( MinecraftPixelDungeon.landscape() ? TXT_SWITCH_PORT : TXT_SWITCH_LAND ) {
+			RedButton btnOrientation = new RedButton(
+					MinecraftPixelDungeon.landscape() ? TXT_SWITCH_PORT : TXT_SWITCH_LAND) {
 				@Override
 				protected void onClick() {
 					MinecraftPixelDungeon.landscape(!MinecraftPixelDungeon.landscape());
 				}
 			};
 			btnOrientation.setRect(0, chkImmersive.bottom() + GAP_LRG, WIDTH, BTN_HEIGHT);
-			add( btnOrientation );
+			add(btnOrientation);
 		}
 	}
 
 	private class UITab extends Group {
 
-		public UITab(){
+		public UITab() {
 			super();
 
 			BitmapText barDesc = PixelScene.createText("Toolbar Mode:", 9);
 			barDesc.measure();
-			barDesc.x = (WIDTH-barDesc.width())/2;
+			barDesc.x = (WIDTH - barDesc.width()) / 2;
 			add(barDesc);
 
-			RedButton btnSplit = new RedButton("Split"){
+			RedButton btnSplit = new RedButton("Split") {
 				@Override
 				protected void onClick() {
 					MinecraftPixelDungeon.toolbarMode(Toolbar.Mode.SPLIT.name());
 					Toolbar.updateLayout();
 				}
 			};
-			btnSplit.setRect( 1, barDesc.y + barDesc.height(), 36, BTN_HEIGHT);
+			btnSplit.setRect(1, barDesc.y + barDesc.height(), 36, BTN_HEIGHT);
 			add(btnSplit);
 
-			RedButton btnGrouped = new RedButton("Group"){
+			RedButton btnGrouped = new RedButton("Group") {
 				@Override
 				protected void onClick() {
 					MinecraftPixelDungeon.toolbarMode(Toolbar.Mode.GROUP.name());
 					Toolbar.updateLayout();
 				}
 			};
-			btnGrouped.setRect( btnSplit.right()+1, barDesc.y + barDesc.height(), 36, BTN_HEIGHT);
+			btnGrouped.setRect(btnSplit.right() + 1, barDesc.y + barDesc.height(), 36, BTN_HEIGHT);
 			add(btnGrouped);
 
-			RedButton btnCentered = new RedButton("Center"){
+			RedButton btnCentered = new RedButton("Center") {
 				@Override
 				protected void onClick() {
 					MinecraftPixelDungeon.toolbarMode(Toolbar.Mode.CENTER.name());
 					Toolbar.updateLayout();
 				}
 			};
-			btnCentered.setRect(btnGrouped.right()+1, barDesc.y + barDesc.height(), 36, BTN_HEIGHT);
+			btnCentered.setRect(btnGrouped.right() + 1, barDesc.y + barDesc.height(), 36, BTN_HEIGHT);
 			add(btnCentered);
 
-			CheckBox chkFlipToolbar = new CheckBox("Flip Toolbar"){
+			CheckBox chkFlipToolbar = new CheckBox("Flip Toolbar") {
 				@Override
 				protected void onClick() {
 					super.onClick();
@@ -205,7 +235,7 @@ public class WndSettings extends WndTabbed {
 			chkFlipToolbar.checked(MinecraftPixelDungeon.flipToolbar());
 			add(chkFlipToolbar);
 
-			CheckBox chkFlipTags = new CheckBox("Flip Indicators"){
+			CheckBox chkFlipTags = new CheckBox("Flip Indicators") {
 				@Override
 				protected void onClick() {
 					super.onClick();
@@ -237,7 +267,7 @@ public class WndSettings extends WndTabbed {
 			OptionSlider musicVol = new OptionSlider("Music Volume", "0", "10", 0, 10) {
 				@Override
 				protected void onChange() {
-					Music.INSTANCE.volume(getSelectedValue()/10f);
+					Music.INSTANCE.volume(getSelectedValue() / 10f);
 					MinecraftPixelDungeon.musicVol(getSelectedValue());
 				}
 			};
@@ -245,7 +275,7 @@ public class WndSettings extends WndTabbed {
 			musicVol.setRect(0, 0, WIDTH, SLIDER_HEIGHT);
 			add(musicVol);
 
-			CheckBox musicMute = new CheckBox("Mute Music"){
+			CheckBox musicMute = new CheckBox("Mute Music") {
 				@Override
 				protected void onClick() {
 					super.onClick();
@@ -256,11 +286,10 @@ public class WndSettings extends WndTabbed {
 			musicMute.checked(!MinecraftPixelDungeon.music());
 			add(musicMute);
 
-
 			OptionSlider SFXVol = new OptionSlider("SFX Volume", "0", "10", 0, 10) {
 				@Override
 				protected void onChange() {
-					Sample.INSTANCE.volume(getSelectedValue()/10f);
+					Sample.INSTANCE.volume(getSelectedValue() / 10f);
 					MinecraftPixelDungeon.SFXVol(getSelectedValue());
 				}
 			};
@@ -268,20 +297,126 @@ public class WndSettings extends WndTabbed {
 			SFXVol.setRect(0, musicMute.bottom() + GAP_LRG, WIDTH, SLIDER_HEIGHT);
 			add(SFXVol);
 
-			CheckBox btnSound = new CheckBox( "Mute SFX" ) {
+			CheckBox btnSound = new CheckBox("Mute SFX") {
 				@Override
 				protected void onClick() {
 					super.onClick();
 					MinecraftPixelDungeon.soundFx(!checked());
-					Sample.INSTANCE.play( Assets.SND_CLICK );
+					Sample.INSTANCE.play(Assets.SND_CLICK);
 				}
 			};
 			btnSound.setRect(0, SFXVol.bottom() + GAP_SML, WIDTH, BTN_HEIGHT);
 			btnSound.checked(!MinecraftPixelDungeon.soundFx());
-			add( btnSound );
+			add(btnSound);
 
-			resize( WIDTH, (int)btnSound.bottom());
+			resize(WIDTH, (int) btnSound.bottom());
 		}
 
+	}
+
+	private class SaveTab extends Group {
+		public SaveTab() {
+			super();
+
+			btnExportInfo = new RedButton("") {
+				@Override
+				protected void onClick() {
+
+				}
+			};
+
+			btnExportFiles = new RedButton("Export save files") {
+				@Override
+				protected void onClick() {
+					exportSaveFiles();
+				}
+			};
+			btnExportFiles.enable(!MinecraftPixelDungeon.savesExported());
+			btnExportFiles.setRect(0, 0, WIDTH, BTN_HEIGHT);
+			add(btnExportFiles);
+
+			btnExportInfo.enable(false);
+			btnExportInfo.setRect(0, btnExportFiles.bottom() + GAP_SML, WIDTH, BTN_HEIGHT);
+			add(btnExportInfo);
+		}
+	}
+
+	private void exportSaveFiles() {
+		String savePath = Environment.getExternalStorageDirectory().getPath() + "/minecraft-pd/";
+		File savePathFile = new File(savePath);
+		savePathFile.mkdirs();
+
+		String[] filesToSave = Game.instance.fileList();
+		for (int i = 0; i < filesToSave.length; i++) {
+			File exportedFile = new File(savePath + filesToSave[i]);
+			try {
+				System.err.println(Environment.getExternalStorageState().toString());
+				exportedFile.createNewFile();
+				FileInputStream streamIn = Game.instance.openFileInput(filesToSave[i]);
+				String bundleToExport = read(streamIn, true);
+				FileOutputStream streamOut = new FileOutputStream(exportedFile);
+				write(bundleToExport, streamOut);
+				streamIn.close();
+				streamOut.close();
+			} catch (IOException e) {
+				Toast.makeText(MinecraftPixelDungeon.instance, "Cannot access storage... State: " +
+						 Environment.getExternalStorageState().toString(), Toast.LENGTH_LONG).show();
+
+				e.printStackTrace();
+			}
+		}
+
+		MinecraftPixelDungeon.savesExported(true);
+		btnExportFiles.enable(!MinecraftPixelDungeon.savesExported());
+		btnExportInfo.text("Savefiles exported!");
+		saves.update();
+	}
+
+	private void importSaveFiles() {
+		String savePath = Environment.getExternalStorageDirectory().getPath() + "/minecraft-pd/";
+		File savePathFile = new File(savePath);
+		savePathFile.mkdirs();
+
+		String[] filesToSave = savePathFile.list();
+
+		for (int i = 0; i < filesToSave.length; i++) {
+			File importedFile = new File(savePath + filesToSave[i]);
+			try {
+				FileInputStream streamIn = new FileInputStream(importedFile);
+				String bundleToImport = read(streamIn, false);
+				FileOutputStream streamOut = Game.instance.openFileOutput(filesToSave[i], Game.MODE_PRIVATE);
+				write(bundleToImport, streamOut);
+				streamIn.close();
+				streamOut.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private String read(InputStream stream, boolean encrypt) throws IOException {
+		try {
+			BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+			JSONObject json = (JSONObject) new JSONTokener(reader.readLine()).nextValue();
+			reader.close();
+
+			String content = json.toString();
+
+			return Encryption.DeEncryption(content, encrypt);
+		} catch (Exception e) {
+			throw new IOException();
+		}
+	}
+
+	private boolean write(String str, OutputStream stream) {
+		try {
+			BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stream));
+			writer.write(str);
+			writer.close();
+
+			return true;
+		} catch (IOException e) {
+			return false;
+		}
 	}
 }

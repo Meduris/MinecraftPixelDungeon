@@ -39,7 +39,7 @@ public class WelcomeScene extends PixelScene {
 
 	private static final String TTL_Welcome = "Welcome!";
 
-	private static final String TTL_Update = "v0.1.2";
+	private static final String TTL_Update = "v0.1.2a";
 
 	private static final String TTL_Future = "Wait What?";
 
@@ -64,6 +64,10 @@ public class WelcomeScene extends PixelScene {
 				"Happy Dungeoneering!";
 
 	private static final String TXT_Update =
+				"This version is just for you to be able to export your " +
+				"savefiles as I made a fault with signing the apks since now." +
+				"the next version will be signed properly and include a method to import your saves again.\n" +
+				"For more details, please look at my reddit post!\n" + 
 				"Updated the ingame graphics\n" +
 				"v0.1.1:\n" +
 				"Updated some things to meet the modding guidelines:\n" +

@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 	package="com.minecraftpixeldungeon"
-	android:versionCode="87"
-	android:versionName="0.1.2"
+	android:versionCode="88"
+	android:versionName="0.1.2a"
 	android:installLocation="auto">
 
 	<uses-permission android:name="android.permission.VIBRATE"/>
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 
 	<uses-sdk
 		android:minSdkVersion="8"

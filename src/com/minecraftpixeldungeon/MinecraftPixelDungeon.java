@@ -395,6 +395,14 @@ public class MinecraftPixelDungeon extends Game {
 		return Preferences.INSTANCE.getInt( Preferences.KEY_VERSION, 0 );
 	}
 	
+	public static void savesExported(boolean exported){
+		Preferences.INSTANCE.put(Preferences.KEY_FILES_EXPORTED, exported);
+	}
+	
+	public static boolean savesExported() {
+		return Preferences.INSTANCE.getBoolean(Preferences.KEY_FILES_EXPORTED, false);
+	}
+	
 	/*
 	 * <--- Preferences
 	 */
