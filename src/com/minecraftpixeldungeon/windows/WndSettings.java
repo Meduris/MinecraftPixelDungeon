@@ -30,6 +30,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
 
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -48,6 +49,7 @@ import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.audio.Music;
 import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.Bundle;
 
 import android.os.Environment;
 import android.widget.Toast;
@@ -68,8 +70,11 @@ public class WndSettings extends WndTabbed {
 	private AudioTab audio;
 	private SaveTab saves;
 
-	private RedButton btnExportInfo;
-	private RedButton btnExportFiles;
+//	private RedButton btnExportInfo;
+//	private RedButton btnExportFiles;
+	
+	private RedButton btnImportInfo;
+	private RedButton btnImportFiles;
 
 	public WndSettings() {
 		super();
@@ -318,26 +323,48 @@ public class WndSettings extends WndTabbed {
 		public SaveTab() {
 			super();
 
-			btnExportInfo = new RedButton("") {
+//			btnExportInfo = new RedButton("") {
+//				@Override
+//				protected void onClick() {
+//
+//				}
+//			};
+//
+//			btnExportFiles = new RedButton("Export save files") {
+//				@Override
+//				protected void onClick() {
+//					exportSaveFiles();
+//				}
+//			};
+//			btnExportFiles.enable(!MinecraftPixelDungeon.savesExported());
+//			btnExportFiles.setRect(0, 0, WIDTH, BTN_HEIGHT);
+//			add(btnExportFiles);
+//
+//			btnExportInfo.enable(false);
+//			btnExportInfo.setRect(0, btnExportFiles.bottom() + GAP_SML, WIDTH, BTN_HEIGHT);
+//			add(btnExportInfo);
+			
+			btnImportInfo = new RedButton(""){
 				@Override
-				protected void onClick() {
-
+				protected void onClick(){
+					
 				}
 			};
-
-			btnExportFiles = new RedButton("Export save files") {
+			
+			btnImportFiles = new RedButton("Import save files") {
 				@Override
 				protected void onClick() {
-					exportSaveFiles();
+					importSaveFiles();
 				}
 			};
-			btnExportFiles.enable(!MinecraftPixelDungeon.savesExported());
-			btnExportFiles.setRect(0, 0, WIDTH, BTN_HEIGHT);
-			add(btnExportFiles);
-
-			btnExportInfo.enable(false);
-			btnExportInfo.setRect(0, btnExportFiles.bottom() + GAP_SML, WIDTH, BTN_HEIGHT);
-			add(btnExportInfo);
+			
+			btnImportFiles.enable(!MinecraftPixelDungeon.savesImported());
+			btnImportFiles.setRect(0, 0, WIDTH, BTN_HEIGHT);
+			add(btnImportFiles);
+			
+			btnImportInfo.enable(false);
+			btnImportInfo.setRect(0, btnImportFiles.bottom() + GAP_SML, WIDTH, BTN_HEIGHT);
+			add(btnImportInfo);
 		}
 	}
 
@@ -366,16 +393,18 @@ public class WndSettings extends WndTabbed {
 			}
 		}
 
-		MinecraftPixelDungeon.savesExported(true);
-		btnExportFiles.enable(!MinecraftPixelDungeon.savesExported());
-		btnExportInfo.text("Savefiles exported!");
-		saves.update();
+//		MinecraftPixelDungeon.savesExported(true);
+//		btnExportFiles.enable(!MinecraftPixelDungeon.savesExported());
+//		btnExportInfo.text("Savefiles exported!");
+//		saves.update();
 	}
 
 	private void importSaveFiles() {
 		String savePath = Environment.getExternalStorageDirectory().getPath() + "/minecraft-pd/";
 		File savePathFile = new File(savePath);
-		savePathFile.mkdirs();
+		if(!savePathFile.exists()){
+			return;
+		}
 
 		String[] filesToSave = savePathFile.list();
 
@@ -384,6 +413,11 @@ public class WndSettings extends WndTabbed {
 			try {
 				FileInputStream streamIn = new FileInputStream(importedFile);
 				String bundleToImport = read(streamIn, false);
+				
+				if(bundleToImport.equalsIgnoreCase("Error")){
+					throw new IOException("File could not be copied due to an error while decrypting it");
+				}
+				
 				FileOutputStream streamOut = Game.instance.openFileOutput(filesToSave[i], Game.MODE_PRIVATE);
 				write(bundleToImport, streamOut);
 				streamIn.close();
@@ -392,17 +426,31 @@ public class WndSettings extends WndTabbed {
 				e.printStackTrace();
 			}
 		}
+
+		MinecraftPixelDungeon.savesImported(true);
+		btnImportFiles.enable(!MinecraftPixelDungeon.savesImported());
+		btnImportInfo.text("Savefiles imported!");
+		saves.update();
 	}
 
 	private String read(InputStream stream, boolean encrypt) throws IOException {
 		try {
+			
 			BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-			JSONObject json = (JSONObject) new JSONTokener(reader.readLine()).nextValue();
+			ArrayList<String> text = new ArrayList<String>(5);
+			String sCurrentLine;
+			while((sCurrentLine = reader.readLine()) != null) {
+				text.add(sCurrentLine);
+			}
+			
+			String str = "";
+			for(int i = 0; i < text.size(); i++){
+				str += text.get(i);
+			}
+
 			reader.close();
 
-			String content = json.toString();
-
-			return Encryption.DeEncryption(content, encrypt);
+			return Encryption.DeEncryption(str, encrypt);
 		} catch (Exception e) {
 			throw new IOException();
 		}

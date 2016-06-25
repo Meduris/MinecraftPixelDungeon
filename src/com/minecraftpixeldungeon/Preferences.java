@@ -46,7 +46,8 @@ enum Preferences {
 	public static final String KEY_BRIGHTNESS	= "brightness";
 	public static final String KEY_VERSION      = "version";
 	
-	public static final String KEY_FILES_EXPORTED = "files_exported";
+//	public static final String KEY_FILES_EXPORTED = "files_exported";
+	public static final String KEY_FILES_IMPORTED = "files_imported";
 	
 	private SharedPreferences prefs;
 	

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 	package="com.minecraftpixeldungeon"
-	android:versionCode="88"
-	android:versionName="0.1.2a"
+	android:versionCode="89"
+	android:versionName="0.1.2b"
 	android:installLocation="auto">
 
 	<uses-permission android:name="android.permission.VIBRATE"/>
